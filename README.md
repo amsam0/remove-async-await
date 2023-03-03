@@ -46,8 +46,6 @@ However, if the `async` feature is used, the code will be unaffected.
 
 You can find more examples in the [`tests/` directory](https://github.com/naturecodevoid/remove-async-await/tree/main/tests).
 
-If you want to use this crate with a trait, see [async-trait](https://crates.io/crates/async-trait).
-
 ## `remove_async_await_string`
 
 There are 2 macros this library provides:
@@ -55,7 +53,7 @@ There are 2 macros this library provides:
 1. `remove_async_await`: The one you should almost always use. Uses `syn` to parse rust code and remove async from functions and await from expressions. Currently, it can only take a function as an
    input.
 2. `remove_async_await_string`: You should only use this one if `remove_async_await` doesn't work for your use case. This is the "dumb macro"; it
-   [literally just removes all occurrences of `async` and `.await` from the string representation of the input](https://github.com/naturecodevoid/remove-async-await/blob/main/src/lib.rs#L150). This
+   [literally just removes all occurrences of `async` and `.await` from the string representation of the input](https://github.com/naturecodevoid/remove-async-await/blob/main/src/lib.rs#L192). This
    means that while it might work with things other than functions, **you shouldn't use it because if a function or variable name contains "async" or ".await", your code will break.**
 
 ## Known issues

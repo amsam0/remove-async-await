@@ -46,8 +46,6 @@
 //!
 //! You can find more examples in the [`tests/` directory](https://github.com/naturecodevoid/remove-async-await/tree/main/tests).
 //!
-//! If you want to use this crate with a trait, see [async-trait](https://crates.io/crates/async-trait).
-//!
 //! ## `remove_async_await_string`
 //!
 //! There are 2 macros this library provides:
@@ -55,7 +53,7 @@
 //! 1. `remove_async_await`: The one you should almost always use. Uses `syn` to parse rust code and remove async from functions and await from expressions. Currently, it can only take a function as an
 //!    input.
 //! 2. `remove_async_await_string`: You should only use this one if `remove_async_await` doesn't work for your use case. This is the "dumb macro"; it
-//! [literally just removes all occurrences of `async` and `.await` from the string representation of the input](https://github.com/naturecodevoid/remove-async-await/blob/main/src/lib.rs#L150). This
+//! [literally just removes all occurrences of `async` and `.await` from the string representation of the input](https://github.com/naturecodevoid/remove-async-await/blob/main/src/lib.rs#L192). This
 //! means that while it might work with things other than functions, **you shouldn't use it because if a function or variable name contains "async" or ".await", your code will break.**
 //!
 //! ## Known issues
@@ -102,10 +100,10 @@
 //! If you want me to add an issue to this list (or fix the issue), please [create a GitHub issue](https://github.com/naturecodevoid/remove-async-await/issues/new)!
 
 use proc_macro::TokenStream;
-use quote::ToTokens;
+use quote::{quote, ToTokens};
 use syn::{
     fold::{self, Fold},
-    parse_macro_input, Expr, ExprBlock, ItemFn,
+    Expr, ExprBlock, ItemFn, TraitItemMethod,
 };
 
 struct RemoveAsyncAwait;
@@ -115,6 +113,12 @@ impl Fold for RemoveAsyncAwait {
         // remove async functions
         i.sig.asyncness = None;
         fold::fold_item_fn(self, i)
+    }
+
+    fn fold_trait_item_method(&mut self, mut i: TraitItemMethod) -> TraitItemMethod {
+        // remove async trait methods
+        i.sig.asyncness = None;
+        fold::fold_trait_item_method(self, i)
     }
 
     fn fold_expr(&mut self, e: Expr) -> Expr {
@@ -135,19 +139,65 @@ impl Fold for RemoveAsyncAwait {
 #[proc_macro_attribute]
 /// Please see crate level documentation for usage and examples.
 pub fn remove_async_await(_args: TokenStream, input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as ItemFn);
+    #[cfg(feature = "debug")]
+    {
+        println!();
+        println!("Input: {}", input.to_string());
+    }
 
-    let output = RemoveAsyncAwait.fold_item_fn(input);
+    macro_rules! to_token_stream {
+        ($input: expr) => {{
+            #[cfg(feature = "debug")]
+            {
+                println!();
+                println!("Parsed input: {:#?}", input);
+                println!();
+            }
+            TokenStream::from($input.to_token_stream())
+        }};
+    }
 
-    TokenStream::from(output.to_token_stream())
+    // Attempt to parse as ItemFn, then TraitItemMethod, and finally fail
+    let output = match syn::parse::<ItemFn>(input.clone()) {
+        Ok(item) => to_token_stream!(RemoveAsyncAwait.fold_item_fn(item)),
+        Err(_) => match syn::parse::<TraitItemMethod>(input.clone()) {
+            Ok(item) => to_token_stream!(RemoveAsyncAwait.fold_trait_item_method(item)),
+            Err(_) => TokenStream::from(quote! {
+                compile_error!("remove_async_await currently only supports functions and trait methods. if you are using it on a supported type, parsing probably failed; please ensure the input is valid Rust.")
+            }),
+        },
+    };
+
+    #[cfg(feature = "debug")]
+    {
+        println!();
+        println!("Output: {}", output.to_string());
+        println!();
+    }
+
+    output
 }
 
 #[proc_macro_attribute]
 /// Please see crate level documentation for usage and examples. (Specifically the `remove_async_await_string` section)
 pub fn remove_async_await_string(_args: TokenStream, input: TokenStream) -> TokenStream {
+    #[cfg(feature = "debug")]
+    {
+        println!();
+        println!("Input: {}", input.to_string());
+    }
+
     let input = input.to_string();
 
     let output = input.replace("async", "").replace(".await", "");
+    let output: TokenStream = output.parse().unwrap();
 
-    output.parse().unwrap()
+    #[cfg(feature = "debug")]
+    {
+        println!();
+        println!("Output: {}", output.to_string());
+        println!();
+    }
+
+    output
 }

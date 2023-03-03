@@ -10,7 +10,7 @@ async fn print() {
 
 #[remove_async_await::remove_async_await_string]
 #[test]
-async fn basic() {
+async fn basic_string() {
     print().await;
 
     let result = async {
