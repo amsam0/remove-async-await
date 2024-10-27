@@ -7,7 +7,7 @@ repository = "https://github.com/naturecodevoid/remove-async-await"
 documentation = "https://docs.rs/remove-async-await"
 version = "1.0.1"
 edition = "2021"
-license = "AGPL-3.0"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
